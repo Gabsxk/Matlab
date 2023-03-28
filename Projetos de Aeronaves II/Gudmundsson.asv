@@ -26,7 +26,7 @@ e.interp   = interp1([0 30],[.7831 .5071],[28],'linear');           % Interpola�
 %% Variação de W/S e T/W para diagrama de Gudmundsen
 
 % Parâmetro de carga alar
-GU.WS = linspace( 500, 1E6, 1E7 ); % Vetor Carga Alar [N/m²] {ESCALA BASEADA NO GUDMUNSON P.70}
+GU.WS = linspace( 500, 100000, 10000000 ); % Vetor Carga Alar [N/m²] {ESCALA BASEADA NO GUDMUNSON P.70}
 
 % Distancias de Pista de Operação
 Xd = 950; % Distância mínima de decolagem [m] {ESTIMADO DADOS DA TABELA}
@@ -56,7 +56,7 @@ Ps = 2.54; % Energia Excedente {POR NORMA 500 ft/min} [ m/s ]
 
 % Velocidades e Pressão dinâmica de Operação
 qc = 0.5 * Vc ^2 * rho(2);                  % Pressão dinâmica (FLIGHT LEVEL)
-Vs = sqrt(  2 .* GU.WS / qc * Clmax   );   % Velocidade de Stall da aeronave [m/s]
+Vs = sqrt(  2 .* GU.WS ./ qc * Clmax   ); % Velocidade de Stall da aeronave [m/s]
 Vdec = 1.2 .* Vs;                           % Velocidade máxima de decolagem [m/s]
 qdec = .5 * Vdec .^ 2 * rho(1);             % Pressão dinâmica (TAKEOFF)
 
@@ -130,13 +130,14 @@ set(gcf, 'Color', 'w');
 set(gca,'GridLineStyle', '-');
 set(gcf,'paperPositionMode','auto')  
 ylim( [ 0 1 ] )
-xlim( [ GU.WS(1) GU.WS(round(W_S_target))+1E4 ])
+xlim( [ GU.WS(1) GU.WS(round(W_S_target))+4E3 ])
 xline(W_S_target,'-.','REQUISITO')
 yline(T_W_target,'-.','REQUISITO')
 
 % ============================== UDPDATE RAYMER 
 
 %% AUPDATE FROM RAYMER
+g
 W = 6463 * g; % [ N ] Peso da aeronave
 
 T = W * T_W_target; % [ N ] Empuxo da aeronave
