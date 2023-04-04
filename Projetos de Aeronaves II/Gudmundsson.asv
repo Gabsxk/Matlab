@@ -5,7 +5,7 @@ clear;clc;close all;
 %% Parâmetros iniciais propostos para a aeronave
 
 % Constantes
-g = 9.81 ;       % Aceleração da gravidade [m/s²]
+g = 9.81 ; % Aceleração da gravidade [m/s²]
 
 % Altitudes de Operação
 h = 0;              % Altitude nível do mar [m]
@@ -26,46 +26,47 @@ e.interp   = interp1([0 30],[.7831 .5071],[28],'linear');           % Interpola�
 %% Variação de W/S e T/W para diagrama de Gudmundsen
 
 % Parâmetro de carga alar
-GU.WS = linspace( 500, 100000, 10000000 ); % Vetor Carga Alar [N/m²] {ESCALA BASEADA NO GUDMUNSON P.70}
+GU.WS = linspace( 1E-3, 1E5, 1E6 ); % Vetor Carga Alar [N/m²] {ESCALA BASEADA NO GUDMUNSON P.70}
 
 % Distancias de Pista de Operação
 Xd = 950; % Distância mínima de decolagem [m] {ESTIMADO DADOS DA TABELA}
 
 % Parâmetros de Pista
 mu = .04; % Coeficiente de atrito da pista {GUM TABLE 17-3}
+mu  = .4;
 
 % Atmosfera Padrão
 [T, a, P, rho] = atmosisa([h hc]);
 
 % Derivadas da Aeronave
-      Clmax = 2.7;           % Coeficiente de sustentação máximo (Aula 06 - pag. 42)
+      Clmax = 2.7; % Coeficiente de sustentação máximo (Aula 06 - pag. 42)
  
     % Arrasto
-      Cfe    = .003;                    % Coeficiente de Fricçào de Superfície Equivalente - (04 Estimativa de Polar de Arrasto)
-      Cd_0   = .02;                      % Coeficiente de arrasto parasita ------------------ {DADO TABELADO MOHAMMAD P.70}
+      Cfe    = .003;                     % Coeficiente de Fricçào de Superfície Equivalente - (04 Estimativa de Polar de Arrasto)
+      Cd0   = .02;                      % Coeficiente de arrasto parasita ------------------ {DADO TABELADO MOHAMMAD P.70}
       k      = 1 / (e.interp * pi * AR); % Coeficiente de arrasto induzido ------------------ (04 Estimativa de Polar de Arrasto)
-      Cd_min = 2 * Cd_0;                 % Coeficiente de arrasto mínimo -------------------- (04 Estimativa de Polar de Arrasto)
+      Cd_min = 2 * Cd0;                 % Coeficiente de arrasto mínimo -------------------- (04 Estimativa de Polar de Arrasto)
 
     % Decolagem
-    % Cl = (2 .* GU.W)/(rho(2) * Sw * Vc); % Cl de decolagem 
-      Cl = Clmax/1.44;                     % Cl de decolagem 
-      Cd = Cd_0 + k .* Cl^2;               % Cd de decolagem                                            
-
+      Cl = Clmax/1.44;                     % Coeficiente de sustentação da aeronave em decolagem {RAYMER P.159}
+      Cd = Cd0 + k .* Cl^2;               % Coeficiente de arrasto total da aeronave {SADRAEY P. 70 EQ.3.12}                                           
+      Cdto = Cd + 0.01 + 0.005;            % Coeficiente de arrasto total da aeronave em decolagem 
+      
 % Requisito de Desempenho
-Ps = 2.54; % Energia Excedente {POR NORMA 500 ft/min} [ m/s ] 
+Ps = 2.54; % Energia Excedente {POR NORMA 20 ft/s} [ m/s ] 
 
 % Velocidades e Pressão dinâmica de Operação
-qc = 0.5 * Vc ^2 * rho(2);                  % Pressão dinâmica (FLIGHT LEVEL)
-Vs = sqrt(  2 .* GU.WS ./ qc * Clmax   ); % Velocidade de Stall da aeronave [m/s]
-Vdec = 1.2 .* Vs;                           % Velocidade máxima de decolagem [m/s]
-qdec = .5 * Vdec .^ 2 * rho(1);             % Pressão dinâmica (TAKEOFF)
+Vs = sqrt(  2 .* GU.WS ./ ( rho(2) * Clmax )  ); % Velocidade de Stall da aeronave [m/s] {SADRAEY P. 56 EQ.2.49}
+Vdec = 1.2 .* Vs;               % Velocidade máxima de decolagem [m/s] 
+qc = .5 * Vc ^2 * rho(2);       % Pressão dinâmica (FLIGHT LEVEL)
+qdec = .5 * ( Vdec ./ sqrt(2) ) .^ 2 * rho(1); % Pressão dinâmica (TAKEOFF)
 
 %% Equações de Gudmundsen
 
 % T/W for a Level Constant-velocity Turn - Pág.68 (Eq.3-1)
 
-GU.TW_cvt = qc * ( Cd_min ./ ( GU.WS ) + ...
-    k *( ( 1 / cosd(45) ) / qc )^2 .* ( GU.WS ) );
+GU.TW_cvt = qc .* ( Cd_min ./ ( GU.WS ) + ...
+    k *( ( 1 / cosd(45) ) ./ qc ).^2 .* ( GU.WS ) );
 
 % T/W for a Desired Specific Energy Level - Pág. 68 (Eq. 3-2)
 
@@ -78,68 +79,69 @@ GU.TW_rc = Vv/Vc + ( ( qc * Cd_min ) ./ GU.WS ) + ( ( k .* GU.WS ) / qc );
 
 % T/W for a Desired T-O Distance - pág.69 (Eq.3-4)
 
-GU.TW_to = ( Vdec.^2 ./( 2 * g * Xd ) ) + ( qdec .* Cd ./ ( GU.WS ) )+ ...
-           ( mu * ( 1 - qdec .* Cl ./ ( GU.WS ) ) );
+GU.TW_to = ( Vdec .^2 ./ ( 2 * g * Xd ) ) + ( qdec .* Cdto ./ ( GU.WS ) ) + ...
+           ( mu * ( 1 - ( qdec .* Cl ./ ( GU.WS )  )  ) );
           
 % T/W for a Desired Cruise Airspeed - pág.59 (Eq.3-5)
 
 GU.TW_cr = qc * Cd_min * ( 1 ./ ( GU.WS ) ) + ...
            k * ( 1 / qc ) .* ( GU.WS );
            
-% T/W for a Service Ceiling (ROC 100 fpm or 0.508 m/s) - pág.69 (Eq.3-6)
+% T/W for a Service Ceiling (ROC 500 fpm or 0.508 m/s) - pág.69 (Eq.3-6)
 
-GU.TW_ts = Vv ./ sqrt( ( ( 2 ./ rho(2) ) .* ( GU.WS ) .* sqrt( k / (3 * Cd_min) ) ) ) +...
-           4 * sqrt( (k * Cd_min) / 3);
-       
-       
+% GU.TW_ts = Vv ./ sqrt( ( ( 2 ./ rho(2) ) .* ( GU.WS ) .* sqrt( k / (3 * Cd_min) ) ) ) +...
+%            4 * sqrt( (k * Cd_min) / 3); % Desenvolvido para aeronaves a jato
 
-%% Plotando o Diagrama de Gudmundsen
+% W/S for Stall
+GU.WS_st = .5 * rho(1) * 46.3 * Clmax;
+
+%% Plotando o Diagrama de Restrições
 
 % Upper curve:
-values = [GU.TW_cvt
-          GU.TW_sel
-          GU.TW_rc
-          GU.TW_to
-          GU.TW_cr
-          GU.TW_ts];
+values = [GU.TW_cvt; GU.TW_sel; GU.TW_rc; GU.TW_to; GU.TW_cr];
 max_values = max(values);
 [T_W_target,index] = min(max_values);
 W_S_target = GU.WS(index);
 
-figure
-hold on
-grid on
+figure; hold on; grid minor
 plot(GU.WS,GU.TW_cvt)
 plot(GU.WS,GU.TW_sel)
 plot(GU.WS,GU.TW_rc)
 plot(GU.WS,GU.TW_to)
 plot(GU.WS,GU.TW_cr)
-plot(GU.WS,GU.TW_ts)
-%plot(GU.WS,max_values,'LineWidth',2)
-xlabel('Carga Alar - W/S [N/m²]')
-ylabel('Empuxo Específico - T/W [-]')
-title('DIAGRAMA DE GUNDMUNDSEN')
 legend('T/W for a Level Constant-velocity Turn',...
        'T/W for a Desired Specific Energy Level',...
        'T/W for a Desired Rate of Climb',...
        'T/W for a Desired T-O Distance',...
        'T/W for a Desired Cruise Airspeed',...
-       'T/W for a Service Ceiling (ROC 100 fpm or 0.508 m/s)', ...
        'Location','NorthWest','FontSize', 12,'FontName','Times New Roman','Location','best');
-set(gcf, 'Color', 'w');
-set(gca,'GridLineStyle', '-');
-set(gcf,'paperPositionMode','auto')  
+% plot(GU.WS,GU.TW_ts) % Desenvolvido para aeronaves a hélice
+% plot(GU.WS,max_values,'LineWidth',2)
+xlabel('Carga Alar - W/S [N/m²]','FontSize', 12,'FontName','Times New Roman')
+ylabel('Empuxo Específico - T/W [-]','FontSize', 12,'FontName','Times New Roman')
+title('DIAGRAMA DE GUNDMUNDSEN','FontSize', 12,'FontName','Times New Roman')
+set(gcf, 'Color', 'w'); set(gca,'GridLineStyle', '-'); set(gcf,'paperPositionMode','auto')  
 ylim( [ 0 1 ] )
-xlim( [ GU.WS(1) GU.WS(round(W_S_target))+4E3 ])
-xline(W_S_target,'-.','REQUISITO')
-yline(T_W_target,'-.','REQUISITO')
+xlim( [ GU.WS(1) GU.WS(round(W_S_target))+1E4 ])
+xline(W_S_target,'-.','MÍNIMO','HandleVisibility','off')
+yline(T_W_target,'-.','MÍNIMO','HandleVisibility','off')
+plot(W_S_target,T_W_target, 'k.','HandleVisibility','off', 'MarkerSize',30)
+xline(GU.WS_st,'-.','STALL VELOCITY','HandleVisibility','off')
+
 
 % ============================== UDPDATE RAYMER 
 
 %% AUPDATE FROM RAYMER
-g
-W = 6463 * g; % [ N ] Peso da aeronave
+W = 6642 * g;  % [ N     ] Peso da aeronave
+S = 25.6858;   % [ m^2   ] Área Alar Mercado
+WS.merc = W/S; % [ N/m^2 ] Carga Alar
 
+%% Plotando o Diagrama de Restrições
+xline(WS.merc,'r-.','PHENOM 300','HandleVisibility','off')
+yline(15471*2/W,'r-.','PHENOM 300','HandleVisibility','off')
+plot(WS.merc,15471*2/W, 'r.','HandleVisibility','off', 'MarkerSize',30)
+
+%% Obtenção do Empuxo e Área da asa de projeto com base nos requisitos
 T = W * T_W_target; % [ N ] Empuxo da aeronave
 fprintf( '\n   A TRAÇÃO DA AERONAVE É\n') %                                                           |
 fprintf( '        T = %G [ N ]\n', T ) %
@@ -149,3 +151,138 @@ S = W / W_S_target; % [ m^2 ] Área da asa
 fprintf( '\n   A ÁREA DA ASA DA AERONAVE É\n') %                                                           |
 fprintf( '          S = %G [ m^2 ] \n', S ) %
 fprintf( '\n ============================ \n ') % 
+
+%% Obtenção do Empuxo
+fprintf( '\n   ANÁLISE DE MOTORES \n')
+
+% Valores de Tração de Mercado
+%          PW306B	         PW535E	           LF507	     FJ44-4	         TFE-731-2	       pw305A
+Tr.m = 2*[23219.7084	   15470.90916	     31137.54	   16013.592	     16458.414	    20808.77316]; % [ N ] Tração de Mercado
+
+% Obtenção da tração equivalente para FL450
+sig   = rho(2) / 1.225; % [ - ] Fator de conversão para densidade específica 
+Tr.FL = Tr.m * sig^1; % [ N ] Conversão da tração
+
+% Vetor velocidade de operação de cruzeiro
+V = linspace(1, 2*Vc, 1E3); % [ m/s ] Velocidade de Operação da aeronave em cruzeiro
+
+% Obtençao da potência requerida para operação    
+Pr = .5 * rho(2) * (V .^3) * S * Cd0 + (2 * k * W ^2) ./ ( rho(2) * V .* S); % [ W ] Potência Requerida
+
+% For para análise para cada tração de mercado
+for ii = 1:length(Tr.FL)
+    Pd = Tr.FL(ii).*V; % [ W ] Potência Disponível
+    
+    Var.P = Pd - Pr; % [ W ] Excesso de Potência
+    
+    % Gráfico de Potência
+    figure; hold on; grid minor
+    plot(V,Pr)
+    plot(V,Pd)
+    plot(V,Var.P,'k')
+    legend('Potência Requerida',...
+           'Potência Disponível',...
+           'Excesso de Potência',... 
+           'Location','NorthWest','FontSize', 12,'FontName','Times New Roman','Location','best');
+    ylim([0  3E6])
+    xlim([50 400])
+    xlabel('Velocidade [ m/s ] ','FontSize', 12,'FontName','Times New Roman')
+    ylabel('Tração [ N ]','FontSize', 12,'FontName','Times New Roman')
+    title('Polar de Empuxo','FontSize', 12,'FontName','Times New Roman')
+    set(gcf, 'Color', 'w'); set(gca,'GridLineStyle', '-'); set(gcf,'paperPositionMode','auto')
+    
+    % Localização do ponto de maior potência disponível
+    [~,index] = max(Var.P);
+    plot(V(index),Var.P(index),'k.', 'MarkerSize',30,'HandleVisibility','off')
+    xline(V(index),'-.','MÁXIMO EMPUXO','HandleVisibility','off')
+
+    % Análise de cumprimento de requisito
+    ROC = Var.P(index) / W; % [ m/s ] Energia excedente de subida
+    Req(ii) = ROC >= 2.54;
+    
+    % Impressão de aprovados e reprovados
+    if Req(ii) == 1 
+        fprintf( '\n   MOTOR %G APROVADO \n', ii)
+    else 
+        fprintf( '\n   MOTOR %G REPROVADO \n', ii)         
+    end
+   
+    % Limita Gráfico
+   if ii < length(Tr.FL)
+       close
+   end
+   
+end
+fprintf( '\n ============================ \n ') % 
+
+
+%% Análise de Geometria da asa
+fprintf( '\n  ANÁLISE DE GEOMETRIA DA ASA \n')
+
+% Variedade de área de asa
+Sw.Var = W ./ linspace(W_S_target,WS.merc,1E3); 
+
+% Envergadura
+b = sqrt( Sw.Var .* AR ); % [ m ] Envergadura
+
+% Gráfico de Análise
+figure; hold on; grid minor
+plot(Sw.Var,b,'k','LineWidth',1)
+yline(16,'r-.','PHENOM 300','HandleVisibility','off')
+legend('Envergadura',...
+       'Location','NorthWest','FontSize', 12,'FontName','Times New Roman','Location','best');
+xlabel('Área da Asa [ m² ]','FontSize', 12,'FontName','Times New Roman')
+ylabel('Envergadura [ m  ]','FontSize', 12,'FontName','Times New Roman')
+title('Análise de Envergadura','FontSize', 12,'FontName','Times New Roman')
+set(gcf, 'Color', 'w'); set(gca,'GridLineStyle', '-'); set(gcf,'paperPositionMode','auto')  
+
+%% Polar de arrasto
+fprintf( '\n  POLAR DE ARRASTO \n')
+
+% Coeficiente de sustentação
+CL.var = linspace(0, 2*Clmax, 1E2);
+
+% Coeficiente de arrasto da aeornave 
+CD.var = Cd0 + k * CL.var .^2;
+
+% Gráfico de Análise
+figure; hold on; grid minor
+plot( CL.var, CD.var,'linewidth', 1 )
+legend('Polar de Arrasto',...
+       'Location','NorthWest','FontSize', 12,'FontName','Times New Roman','Location','best');
+title('Polar de Arrasto','FontSize', 12,'FontName','Times New Roman')
+xlabel('C_L','FontSize', 12,'FontName','Times New Roman')
+ylabel('C_D','FontSize', 12,'FontName','Times New Roman')
+set(gcf, 'Color', 'w'); set(gca,'GridLineStyle', '-'); set(gcf,'paperPositionMode','auto')
+
+fprintf( '\n ============================ \n ') % 
+
+%% Diagrama de Arrasto da Aeronave
+fprintf( '\n  DIAGRAMA DE ARRASTO \n')
+
+% Arrasto Induzido
+CL.var = linsoace(1E-3, 3, 1E3)
+DI = .5 * rho(2) * S * k * CL.var * V .^2;
+
+% Arrasto Parasita 
+DP = .5 * rho(2) * S * Cd0 * V .^2;
+
+% Arrasto Total
+DT = DI + DP;
+
+% Gráfico de Análise
+figure; hold on; grid minor
+plot( V, DT,'linewidth', 1 )
+plot( V, DI,'linewidth', 1 )
+plot( V, DP,'linewidth', 1 )
+legend('Arrasto Total',...
+       'Arrasto Induzido',...
+       'Arrasto Parasita',...
+       'Location','NorthWest','FontSize', 12,'FontName','Times New Roman','Location','best');
+title('Polar de Arrasto','FontSize', 12,'FontName','Times New Roman')
+xlabel('Velocidade [ m/s ]','FontSize', 12,'FontName','Times New Roman')
+ylabel('Arrasto [ kN ]','FontSize', 12,'FontName','Times New Roman')
+set(gcf, 'Color', 'w'); set(gca,'GridLineStyle', '-'); set(gcf,'paperPositionMode','auto')
+
+fprintf( '\n ============================ \n ') % 
+

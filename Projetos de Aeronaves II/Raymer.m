@@ -71,14 +71,14 @@ Wloiter = exp( ( -E * SFC.FL250 ) / ( LDMAX ) ); % W4/W3 {SADRAEY P.133 EQ.4.20}
 WxW0 = Wtakeoff * Wclimb * Wcruise * Wloiter *  Wlanding * Wdescent; % W6/W0 {SADRAEY P.128 EQ.4.10}
 
 % fuel weight ratio
-W.f0 = 1.06 * ( 1 - WxW0 ); % 5% a mais de combustível {RAYMER P.71} {SADRAEY P.129 EQ.4.11}
+W.f0 = 1.06 * ( 1 - WxW0 ); % 5 a mais de combustível {RAYMER P.71} {SADRAEY P.129 EQ.4.11}
 
 % Takeof-Weight Guess
-W0G = linspace( 2000, 200000, 1000000 );
+W0G = linspace( 2E3, 2E5, 1E6 );
 
 % Empty-Weight {RAYMER P.59} {SADRAEY P.136 EQ.4.26}
-% W.e0 =1.4 * W0G .^ ( -.1 ); % {RAYMER P.61 TABLE.3.1}
-  W.e0 = -7.754*1E-8 * W0G + .576; % {SADRAEY P.136/138 EQ.4.26 TABLE 4.8} 
+W.e0 =1.4 * W0G .^ ( -.1 ); % {RAYMER P.61 TABLE.3.1}
+% W.e0 = -7.754*1E-8 * W0G + .576; % {SADRAEY P.136/138 EQ.4.26 TABLE 4.8} 
 
 % Takeof-Weight
 W0  = ( Wcrew + Wpayload )./ ( 1 - W.f0 - W.e0 ); % Descobre MTOW {SADRAEY P.123 EQ.4.5}
